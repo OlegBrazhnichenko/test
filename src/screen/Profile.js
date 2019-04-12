@@ -162,7 +162,7 @@ export default class Profile extends Component {
         waste_id: wasteId,
         volume: this.state.volume,
         volume_unit: "kg",
-        expiry_date: this.state.selectedDate,
+        expiry_date: this.state.selectedDate === "Select Date/Time" ? "" :this.state.selectedDate,
         latitude: this.state.latitude,
         longitude: this.state.longitude,
       };
