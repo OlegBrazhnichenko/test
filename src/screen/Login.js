@@ -44,10 +44,10 @@ export default class Login extends Component {
         // params.append('password', this.state.password);
 
         let params = {
-          // email: this.state.email,
-          // password: this.state.password,
-            email: "Test@test.test",
-            password: 'qwerty',
+          email: this.state.email,
+          password: this.state.password,
+          //   email: "A@a.a",
+          //   password: 'q',
         };
         const config = {
           headers: {

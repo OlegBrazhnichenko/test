@@ -2,14 +2,30 @@
 
 import React, {Component} from 'react';
 import {StyleSheet, View, ScrollView, TouchableOpacity, AsyncStorage, Picker} from 'react-native';
-import { TextEntryElement, TextElement, CustomStatusBarWithRoot,Progress, ButtonElement, TabElement, Header, LableElement } from '../component';
+import {
+  TextEntryElement,
+  TextElement,
+  CustomStatusBarWithRoot,
+  Progress,
+  ButtonElement,
+  TabElement,
+  Header,
+  LableElement
+} from '../component';
 import DateTimePicker from 'react-native-modal-datetime-picker';
 import { Dropdown } from 'react-native-material-dropdown';
-import { GREEN, PROFILE_URL, UPDATE_PROFILE_URL, PUBLISH_LISTING_URL } from '../utils/constants';
+import {
+  GREEN,
+  PROFILE_URL,
+  GET_WASTES,
+  GET_BUSINESS_TYPES,
+  POST_LISTING,
+} from '../utils/constants';
 import axios from "axios";
 import { alertMessage } from '../utils/utility';
 const URLSearchParams = require("form-data");
-var dateFormat = require('dateformat');
+
+let dateFormat = require('dateformat');
 
 
 export default class Profile extends Component {
@@ -25,24 +41,7 @@ export default class Profile extends Component {
           contact_name: "",
           address: "",
           phone: "",
-          wasteTypes:[
-            {
-              key: "coffee_beat",
-              value:"Coffee waste",
-            },
-            {
-              key: "beer_waste",
-              value:"Beer waste",
-            },
-            {
-              key: "green_waste",
-              value:"Green waste",
-            },
-            {
-              key: "food_waste",
-              value:"Food waste",
-            }
-        ],
+          wasteTypes:[],
           userID:"",
           bussiness_type: "",
           email: "",
@@ -51,7 +50,6 @@ export default class Profile extends Component {
           password: "",
           emailerror: "",
           passworderror: "",
-          wasteType:"",
           volume:"",
           emailTouched: false,
           passwordTouched: false,
@@ -59,25 +57,26 @@ export default class Profile extends Component {
           isProfileActive: true,
           isDateTimePickerVisible:false,
           selectedDate:"Select Date/Time",
-          
+          businessTypes: [],
         };
       }
   componentDidMount(){
-  this.getAsyncData();
-
-  navigator.geolocation.getCurrentPosition(
-    (position) => {
-      console.log("wokeeey");
-      console.log("wokeeey", position);
-      this.setState({
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-        error: null,
-      });
-    },
-    (error) => this.setState({ error: error.message }),
-    { enableHighAccuracy: false, timeout: 200000, maximumAge: 1000 },
-  );
+    this.getAsyncData();
+    this.getWastes();
+    this.getBusinessTypes();
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        console.log("wokeeey");
+        console.log("wokeeey", position);
+        this.setState({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          error: null,
+        });
+      },
+      (error) => this.setState({ error: error.message }),
+      { enableHighAccuracy: false, timeout: 200000, maximumAge: 1000 },
+    );
   }
   async getAsyncData(){
     // const userID = await AsyncStorage.getItem("id");
@@ -111,9 +110,9 @@ export default class Profile extends Component {
     _hideDateTimePicker = () => this.setState({ isDateTimePickerVisible: false });
   
     _handleDatePicked = (date) => {
-      console.log('A date has been picked: ', date);
+      console.log('A date has been picked: ', dateFormat(date, "yyyy-mm-dd hh:MM:ss"));
       
-      this.setState({selectedDate:dateFormat(date, "yyyy-mm-dd h:MM:ss")});
+       this.setState({selectedDate:dateFormat(date, "yyyy-mm-dd hh:MM:ss")});
       this._hideDateTimePicker();
     };
     updateProfile(){
@@ -155,56 +154,107 @@ export default class Profile extends Component {
       
     }
     publishListing(){
-      console.log("this.state.selectedDate",this.state.selectedDate);
-      
-      let params = new URLSearchParams();
-      params.append('waste_type', this.state.selectedType);
-      params.append('user_id', this.state.userID);
-      params.append('volume', this.state.volume);
-      params.append('date', this.state.selectedDate);
-      params.append('latitude', this.state.latitude);
-      params.append('longitude', this.state.longitude);
-  
+
+      let wasteId = this.state.wasteTypes.filter(el=>el.value === this.state.selectedType)[0];
+
+      wasteId = wasteId !== undefined ? wasteId.key : -1;
+      let params = {
+        waste_id: wasteId,
+        volume: this.state.volume,
+        volume_unit: "kg",
+        expiry_date: this.state.selectedDate,
+        latitude: this.state.latitude,
+        longitude: this.state.longitude,
+      };
       const config = {
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          Authorization: "Bearer " + this.state.token,
         }
       };
       this.setState({loading:true});
-      axios.post(PUBLISH_LISTING_URL, params, config )
-      .then((response) => {
-        console.log("response", response.data);
-        
-        this.setState({loading:false});
-        if(response.data.status === 1){
-          this.setState({selectedDate:"Select Date/Time", volume:""});
-          alertMessage(response.data.message);
-        } else {
-          alertMessage(response.data.message);
-        }
-      })
-      .catch((error) => {        
-        alertMessage(error.message);
-        this.setState({loading:false});
-        console.log("error",  error.message);
-      });
-    }
-    getProfile(){
-
-      const config = {headers: {
-        Authorization: "Bearer "+this.state.token.trim(),
-          'Access-Control-Allow-Origin': '*'
-      }};
-      this.setState({loading:true});
-      console.log("token",this.state.token);
-      axios.get(PROFILE_URL, config)
+      axios.post(POST_LISTING, JSON.stringify(params), config )
       .then((response) => {
         console.log("response", response.data);
         
         this.setState({loading:false});
         if(response.status === 200){
+          this.setState({selectedDate:"Select Date/Time", volume:""});
+          alertMessage("Success");
+        } else {
+          alertMessage(response.data.message);
+        }
+      })
+      .catch((error) => {        
+        alertMessage(error.response.data.join(" "));
+        this.setState({loading:false});
+        console.log("error",  error.response.data.join(" "));
+      });
+    }
+  getBusinessTypes() {
+    const config = {headers: {
+      Authorization: "Bearer "+this.state.token,
+      'Access-Control-Allow-Origin': '*'
+    }};
+    this.setState({loading:true});
+
+    axios.get(GET_BUSINESS_TYPES, config)
+      .then((response) => {
+        this.setState({loading:false});
+        if(response.status === 200){
+          this.setState({
+            businessTypes: response.data.map((el)=>{return {key: el.id, value:el.name}}),
+          });
+        } else {
+          alertMessage(response.data.message);
+        }
+      })
+      .catch((error) => {
+        alertMessage(error.message);
+        this.setState({loading:false});
+        console.log("error",  error);
+      });
+  }
+    getWastes() {
+      const config = {headers: {
+        Authorization: "Bearer "+this.state.token,
+        'Access-Control-Allow-Origin': '*'
+      }};
+      this.setState({loading:true});
+
+      axios.get(GET_WASTES, config)
+        .then((response) => {
+          this.setState({loading:false});
+          if(response.status === 200){
+            this.setState({
+              wasteTypes: response.data.map((el)=>{return {key: el.id, value:el.name}}),
+            });
+          } else {
+            alertMessage(response.data.message);
+          }
+        })
+        .catch((error) => {
+          alertMessage(error.message);
+          this.setState({loading:false});
+          console.log("error",  error);
+        });
+    }
+    getProfile(){
+
+      const config = {headers: {
+          Authorization: "Bearer "+this.state.token,
+          'Access-Control-Allow-Origin': '*'
+      }};
+      this.setState({loading:true});
+
+      axios.get(PROFILE_URL, config)
+      .then((response) => {
+        
+        this.setState({loading:false});
+        if(response.status === 200){
           const data = response.data;
-          console.log("response", response.data);
+
           this.setState({
               business_name: data.business_name || "" ,
               contact_name:data.contact_name || "",
@@ -222,8 +272,8 @@ export default class Profile extends Component {
         this.setState({loading:false});
         console.log("error",  error);
       });
-      
     }
+
   render() {
 
     const { constainEditText } = styles;
@@ -326,18 +376,28 @@ export default class Profile extends Component {
           }} />
 
 
-          <TextElement style={constainEditText}>
-            Business Type
-          </TextElement>
-
-          <TextEntryElement 
-            placeholder="Business Type"
-            errorMessage={this.state.emailerror}
-            value={this.state.bussiness_type || null}
-            onChangeText={bussiness_type => this.handleChange(bussiness_type, "bussiness_type")}
-            onSubmitEditing={()=> {
+          {/*<TextElement style={constainEditText}>*/}
+            {/*Business Type*/}
+          {/*</TextElement>*/}
+          <Dropdown
+            labelFontSize={14}
+            label='Business type'
+            dropdownOffset={{top: 32, left: 10}}
+            selectedItemColor={GREEN}
+            value={this.state.bussiness_type}
+            onChangeText={(item) =>{
+              this.setState({bussiness_type: item.value || item})
+            }}
+            data={this.state.businessTypes}
+          />
+            {/*<TextEntryElement */}
+            {/*placeholder="Business Type"*/}
+            {/*errorMessage={this.state.emailerror}*/}
+            {/*value={this.state.bussiness_type || null}*/}
+            {/*onChangeText={bussiness_type => this.handleChange(bussiness_type, "bussiness_type")}*/}
+            {/*onSubmitEditing={()=> {*/}
           
-            }} />
+            {/*}} />*/}
 
             <ButtonElement
               style={{ marginTop: 30 }}
@@ -369,6 +429,7 @@ export default class Profile extends Component {
           <TextEntryElement 
             placeholder="Volume"
             value={this.state.volume}
+            keyboardType={"numeric"}
             errorMessage={this.state.volumeError}
             onChangeText={volume => this.handleChange(volume, "volume")}
             onSubmitEditing={()=> {

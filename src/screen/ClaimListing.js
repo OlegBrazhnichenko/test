@@ -3,7 +3,7 @@
 import React, {Component} from 'react';
 import {StyleSheet, View, Image, AsyncStorage} from 'react-native';
 import { TextEntryElement, TextElement, CustomStatusBarWithRoot, ButtonElement, Header, Progress, CardView, ListingItem } from '../component';
-import { LOGIN_URL, GET_LISTING_URL } from '../utils/constants';
+import { LOGIN_URL, GET_LISTINGS, GET_WASTES } from '../utils/constants';
 import { alertMessage } from '../utils/utility';
 import axios from "axios";
 import { FlatList } from 'react-native-gesture-handler';
@@ -17,6 +17,7 @@ export default class ClaimListing extends Component {
         console.disableYellowBox = true;
         // const { navigate } = this.props.navigation;
         // navigate('SignUpScreen')
+        this.getListing = this.getListing.bind(this);
         this.state = {
           emailerror: "",
           passworderror: "",
@@ -40,30 +41,33 @@ export default class ClaimListing extends Component {
         this.getAsyncData();
       }
       async getAsyncData(){
-        const userID = await AsyncStorage.getItem("id");
-        this.setState({userID}, ()=> {
-          this.getListing();
-       });  
+        this.getListing();
+        const token = await AsyncStorage.getItem("token");
+        this.setState({
+          token: token,
+        }, ()=> {
+          this.getWastes();
+        });
       }
       goBack(){
         this.props.navigation.goBack();
       }
       getListing(){
-        var params = new URLSearchParams();
-        params.append('id', this.state.userID);
 
         const config = {
           headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
           }
-        }
+        };
 
         this.setState({loading:true});
-        axios.post(GET_LISTING_URL,params, config )
+        axios.get(GET_LISTINGS, config )
         .then((response) => {
           this.setState({loading:false});
-          if(response.data.status === 1){
-            this.setState({listingData: response.data.data});
+          if(response.status === 200){
+            console.log(response);
+            this.setState({listingData: response.data});
           } else {
             alertMessage(response.data.message);
           }
@@ -75,14 +79,38 @@ export default class ClaimListing extends Component {
         });
         
       }
+      getWastes() {
+        const config = {headers: {
+          // Authorization: "Bearer "+this.state.token,
+          'Access-Control-Allow-Origin': '*'
+        }};
+        this.setState({loading:true});
+
+        axios.get(GET_WASTES, config)
+          .then((response) => {
+            this.setState({loading:false});
+            if(response.status === 200){
+              this.setState({
+                wasteTypes: response.data.map((el)=>{return {key: el.id, value:el.name}}),
+              });
+            } else {
+              alertMessage(response.data.message);
+            }
+          })
+          .catch((error) => {
+            alertMessage(error.message);
+            this.setState({loading:false});
+            console.log("error",  error);
+          });
+      }
       getImage(imageType){
-        if(imageType === "Coffee waste"){
+        if(imageType === "coffee"){
           return require("./../../images/coffee_waste.png");
-        } else if(imageType === "Beer waste"){
+        } else if(imageType === "beer"){
           return require("./../../images/beer_waste.png");
-        } else if(imageType === "Green waste"){
+        } else if(imageType === "green"){
           return require("./../../images/green_waste.png");
-        } else if(imageType === "Food waste"){
+        } else if(imageType === "food"){
           return require("./../../images/food_waste.png");
         }
           // return require("./../../images/ic_coffee_beat.png");
@@ -93,22 +121,28 @@ export default class ClaimListing extends Component {
       <CustomStatusBarWithRoot>
 
       <Header onBackPress={()=> this.goBack()}>
-        Cliam Listing
+        Claim Listing
       </Header>
 
       <View style={styles.container}>
 
         <FlatList
           data={this.state.listingData}
-          renderItem={({item}) => (
-            <CardView>
-              <ListingItem 
-                type={item.waste_type}
-                image={this.getImage(item.waste_type)}
-                date={item.date}
+          renderItem={({item}) => {
+            let wasteType = "";
+            if(this.state.wasteTypes) {
+              wasteType = this.state.wasteTypes.filter(el => el.key === item.waste_id)[0].value;
+            }
+            return (
+              <CardView>
+                <ListingItem
+                  type={wasteType}
+                  image={this.getImage(wasteType)}
+                  date={item.expiry_date}
                 />
-            </CardView>
-          )}
+              </CardView>
+            )
+          }}
         />
       </View>
       <Progress isShow={this.state.loading} />

@@ -4,7 +4,8 @@ import { TextEntryElement, TextElement, ButtonElement, Header, CustomStatusBarWi
 import MapView,  { PROVIDER_GOOGLE } from 'react-native-maps';
 import { Dropdown } from 'react-native-material-dropdown';
 import { Divider } from '../component/Divider';
-import { GREEN, GET_LISTING_URL } from '../utils/constants';
+import { GREEN, GET_LISTINGS, GET_WASTES, CLAIM_LISTING } from '../utils/constants';
+import { alertMessage } from '../utils/utility';
 import axios from "axios";
 const { width, height } = Dimensions.get('window');
 const URLSearchParams = require("form-data");
@@ -34,24 +35,7 @@ export default class ListingMap extends Component {
           isClaim:true,
           listingData:[],
           loading: false,
-          wasteTypes:[
-            {
-              key: "coffee_beat",
-              value:"Coffee waste",
-            },
-            {
-              key: "beer_waste",
-              value:"Beer waste",
-            },
-            {
-              key: "green_waste",
-              value:"Green waste",
-            },
-            {
-              key: "food_waste",
-              value:"Food waste",
-            }
-        ],
+          wasteTypes:[],
           regian: {
             latitude: 25.7617,
             longitude: -80.1918,
@@ -90,79 +74,135 @@ export default class ListingMap extends Component {
       this.setState({ modalVisible: !this.state.modalVisible });
       
     }
-    componentDidMount(){
-      this.getAsyncData();
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          // const regian = {
-          //   latitude: position.coords.latitude,
-          //   longitude: position.coords.longitude,
-          //   latitudeDelta: 0.0922,
-          //   longitudeDelta: 0.0421,
-          // }
-          this.setState({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude
-          });
-          // this.setState({regian});
-        },
-        (error) => this.setState({ error: error.message }),
-        { enableHighAccuracy: false, timeout: 200000, maximumAge: 1000 },
-      );
-     
+  componentDidMount(){
+    this.getAsyncData();
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        // const regian = {
+        //   latitude: position.coords.latitude,
+        //   longitude: position.coords.longitude,
+        //   latitudeDelta: 0.0922,
+        //   longitudeDelta: 0.0421,
+        // }
+        this.setState({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude
+        });
+        // this.setState({regian});
+      },
+      (error) => this.setState({ error: error.message }),
+      { enableHighAccuracy: false, timeout: 200000, maximumAge: 1000 },
+    );
+
+    }
+    async getAsyncData(){
+      this.getListing();
+      const token = await AsyncStorage.getItem("token");
+      this.setState({
+        token: token,
+      }, ()=> {
+        this.getWastes();
+      });
+
+    }
+    getWastes() {
+      const config = {headers: {
+        // Authorization: "Bearer "+this.state.token,
+        'Access-Control-Allow-Origin': '*'
+      }};
+      this.setState({loading:true});
+
+      axios.get(GET_WASTES, config)
+        .then((response) => {
+          this.setState({loading:false});
+          if(response.status === 200){
+            this.setState({
+              wasteTypes: response.data.map((el)=>{return {key: el.id, value:el.name}}),
+            });
+          } else {
+            alertMessage(response.data.message);
+          }
+        })
+        .catch((error) => {
+          alertMessage(error.message);
+          this.setState({loading:false});
+          console.log("error",  error);
+        });
+    }
+  claimListing(){
+
+    const config = {
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        Authorization: "Bearer " + this.state.token,
       }
-      async getAsyncData(){
-        const userID = await AsyncStorage.getItem("id");
-        this.setState({userID}, ()=> {
-          this.getListing();
-       });  
-      }
+    };
+    this.setState({loading:true});
+    axios.patch(CLAIM_LISTING+this.state.selectedListing.id, JSON.stringify({}), config )
+      .then((response) => {
+
+        this.setState({loading:false});
+        if(response.status === 200){
+          alertMessage("Success");
+          console.log("success");
+        } else {
+          console.log(response);
+          alertMessage("Something went wrong");
+        }
+      })
+      .catch((error) => {
+        alertMessage("Enter the correct data");
+        this.setState({loading:false});
+        console.log("error",  error);
+      });
+
+  }
     getListing(){
-      
-      var params = new URLSearchParams();
-      params.append('id', this.state.userID);
 
       const config = {
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
         }
-      }
+      };
+
       this.setState({loading:true});
-      axios.post(GET_LISTING_URL,params, config )
-      .then((response) => {
-        console.log("response", response.data);
-        
-        this.setState({loading:false});
-        if(response.data.status === 1){
-          this.setState({listingData: response.data.data});
-        } else {
-          alertMessage(response.data.message);
-        }
-      })
-      .catch((error) => {        
-        alertMessage(error.message);
-        this.setState({loading:false});
-        console.log("error",  error.message);
-      });
-      
-    }
-    handleChange(value, field) {
-        this.setState({ [field]: value }, () => {
-          this.emailTest(this.state.email);
-          this.passwordTest(this.state.password);
+      axios.get(GET_LISTINGS, config )
+        .then((response) => {
+          this.setState({loading:false});
+          if(response.status === 200){
+            console.log(response);
+            this.setState({listingData: response.data});
+          } else {
+            alertMessage(response.data.message);
+          }
+        })
+        .catch((error) => {
+          alertMessage(error.message);
+          this.setState({loading:false});
+          console.log("error",  error.message);
         });
-      }
+
+    }
+    // handleChange(value, field) {
+    //   this.setState({ [field]: value }, () => {
+    //     this.emailTest(this.state.email);
+    //     this.passwordTest(this.state.password);
+    //   });
+    // }
     goBack(){
       this.props.navigation.goBack();
     }
     getImage(imageType){
-      if(imageType === "Coffee waste"){
+      if(imageType === "coffee"){
         return require("./../../images/coffee_waste.png");
-      } else if(imageType === "Beer waste"){
+      } else if(imageType === "beer"){
         return require("./../../images/beer_waste.png");
-      } else if(imageType === "Green waste"){
+      } else if(imageType === "green"){
         return require("./../../images/green_waste.png");
-      } else if(imageType === "Food waste"){
+      } else if(imageType === "food"){
         return require("./../../images/food_waste.png");
       }
         // return require("./../../images/ic_coffee_beat.png");
@@ -211,20 +251,26 @@ export default class ListingMap extends Component {
             }}
           >
           {this.state.listingData.map((item, index) => {
-                        console.log("this.state.selectedType === item.waste_type",this.state.selectedType + " = "+item.waste_type);
-                        
-            if((this.state.selectedType === item.waste_type) || !(this.state.selectedType)) {
+            console.log("this.state.selectedType === item.waste_type",this.state.selectedType + " = "+item.waste_type);
+            let wasteType = "";
+            if(this.state.wasteTypes.length) {
+              console.log(item,this.state.wasteTypes);
+              wasteType = this.state.wasteTypes.filter(el => Number(el.key) === Number(item.waste_id))[0].value;
+            }
+
+            if((this.state.selectedType === wasteType) || !(this.state.selectedType)) {
             return  (
               <MapView.Marker
+                key={index}
                 onPress={() => {
-                  this.state.listingData.splice(index,1);
-                  this.setState({title: item.waste_type, volume:item.volume}, () => {
+                  // this.state.listingData.splice(index,1);
+                  this.setState({title: wasteType, volume:item.volume, selectedListing: item}, () => {
                     this.setModalVisible()
                   });
                 }}
-                title={item.waste_type}
-                image={this.getImage(item.waste_type)}
-                description={item.volume}
+                title={wasteType}
+                image={this.getImage(wasteType)}
+                description={item.volume+""}
                 coordinate={{
                   latitude: JSON.parse(item.latitude),
                   longitude: JSON.parse(item.longitude),
@@ -241,7 +287,7 @@ export default class ListingMap extends Component {
           transparent={true}
           visible={this.state.modalVisible}
           onRequestClose={() => {
-            Alert.alert("Modal has been closed.");
+            this.setModalVisible();
           }}
         >
           <View
@@ -263,12 +309,13 @@ export default class ListingMap extends Component {
               </TextElement>
 
               <TextElement>
-              {"Volumne : "+this.state.volume}
+              {"Volume : "+this.state.volume}
               </TextElement>
             </View>
             <ButtonElement style={{margin:10}} onPress={() =>{
-              this.setState({isClaim:false})
+              // this.setState({isClaim:false});
               this.setModalVisible();
+              this.claimListing();
             }}>Order Claim</ButtonElement>
           </CardView>
           </View>

@@ -30,8 +30,11 @@ export const UPDATE_PROFILE_URL = BASE_URL+"update_profile";
 export const SIGNUP_URL = BASE_URL+"signup";
 export const PUBLISH_LISTING_URL = BASE_URL+"add_listing";
 export const GET_LISTING_URL = BASE_URL+"get_listing";
-
-
+export const GET_WASTES = BASE_URL+"wastes";
+export const GET_BUSINESS_TYPES = BASE_URL+"businesses";
+export const POST_LISTING = BASE_URL+"listings";
+export const GET_LISTINGS = BASE_URL+"listings";
+export const CLAIM_LISTING = BASE_URL+"listings/";
 // Error Message
 const constant = {
   SERVER_ERROR_MESSAGE: "The request failed due to an internal error.",

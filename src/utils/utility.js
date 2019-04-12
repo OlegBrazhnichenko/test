@@ -34,7 +34,9 @@ export const noIMessage = () => {
 
 
 export const alertMessage = (message, onPress) => {
- 
+
+  onPress = typeof onPress === "function" ? onPress : ()=>{};
+
   Alert.alert(
     "Message",
     message,
