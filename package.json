@@ -16,7 +16,8 @@
     "react-native-maps": "^0.23.0",
     "react-native-material-dropdown": "^0.11.1",
     "react-native-modal-datetime-picker": "^6.0.0",
-    "react-navigation": "git+https://github.com/react-community/react-navigation.git",
+    "react-native-vector-icons": "6.4.2",
+    "react-navigation": "git+https://github.com/react-community/react-navigation.git#77aa514874570db5c91f36fa4677d6909e67772e",
     "url-search-params": "^1.1.0"
   },
   "devDependencies": {

@@ -2,40 +2,68 @@
 
 
 import React, {Component} from 'react';
-import {StyleSheet, View, Image} from 'react-native';
+import {StyleSheet, View, AsyncStorage, Image} from 'react-native';
 import { TextEntryElement, TextElement, CustomStatusBarWithRoot, ButtonElement, Header } from '../component';
-
+import { alertMessage } from '../utils/utility';
+import {LOGOUT} from '../utils/constants';
+import axios from 'axios';
 
 export default class NavigationScreen extends Component {
 
-    constructor(props) {
-        super(props);
-        console.disableYellowBox = true;
-        // const { navigate } = this.props.navigation;
-        // navigate('SignUpScreen')
-        this.state = {
-          email: "",
-          password: "",
-          emailerror: "",
-          passworderror: "",
-          emailTouched: false,
-          passwordTouched: false,
-          isShow: false,
-          activeTab: "",
-        };
-      }
+  constructor(props) {
+      super(props);
+      console.disableYellowBox = true;
+      // const { navigate } = this.props.navigation;
+      // navigate('SignUpScreen')
+      this.state = {
+        email: "",
+        password: "",
+        emailerror: "",
+        passworderror: "",
+        emailTouched: false,
+        passwordTouched: false,
+        isShow: false,
+        activeTab: "",
+      };
+    }
 
-    handleChange(value, field) {
-        this.setState({ [field]: value }, () => {
-          // this.emailTest(this.state.email);
-          // this.passwordTest(this.state.password);
-        });
-      }
+  handleChange(value, field) {
+      this.setState({ [field]: value }, () => {
+        // this.emailTest(this.state.email);
+        // this.passwordTest(this.state.password);
+      });
+    }
 
-      goBack(){
-        this.props.navigation.goBack();
-      }
+    goBack(){
+      this.props.navigation.goBack();
+    }
+  componentWillMount() {
+    this.testAuth();
+  }
+  async testAuth(){
+    const token = await AsyncStorage.getItem("token");
+    if(!token) {
+      alertMessage("You are unauthorized, please sign in");
+      this.props.navigation.navigate("Login");
+    }
+  }
 
+  async logout() {
+    const token = await AsyncStorage.getItem("token");
+    const config = {headers: {
+      Authorization: "Bearer "+token,
+      'Access-Control-Allow-Origin': '*'
+    }};
+    axios.get(LOGOUT, config).then((response) => {
+      if(response.status === 200){
+        AsyncStorage.setItem("token", "");
+        this.props.navigation.navigate('Login')
+      }
+    }).catch((error) => {
+      alertMessage(error.message);
+      console.log("error",  error);
+    });
+  }
   render() {
     return (
 
@@ -46,8 +74,6 @@ export default class NavigationScreen extends Component {
       </Header>
 
       <View style={styles.container}>
-
-    
         <ButtonElement style={{ marginTop: 10 }} onPress={() => this.props.navigation.navigate('Profile')} >
           Profile
         </ButtonElement>
@@ -59,7 +85,7 @@ export default class NavigationScreen extends Component {
         }} >
           Claimed listings
         </ButtonElement>
-        <ButtonElement style={{ marginTop: 10 }} onPress={() => this.props.navigation.navigate('Login')} >
+        <ButtonElement style={{ marginTop: 10 }} onPress={() => {this.logout()}} >
           Logout
         </ButtonElement>
       </View>

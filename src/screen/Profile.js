@@ -43,7 +43,7 @@ export default class Profile extends Component {
           phone: "",
           wasteTypes:[],
           userID:"",
-          bussiness_type: "",
+          business_type: {value:""},
           email: "",
           latitude: 0.0,
           longitude: 0.0,
@@ -122,7 +122,7 @@ export default class Profile extends Component {
         phone: this.state.phone,
         contact_name: this.state.contact_name,
         business_name: this.state.business_name,
-        business_type: this.state.bussiness_type,
+        business_type: this.state.business_type.key,
         address: this.state.address,
       };
 
@@ -180,7 +180,7 @@ export default class Profile extends Component {
         
         this.setState({loading:false});
         if(response.status === 200){
-          this.setState({selectedDate:"Select Date/Time", volume:""});
+          this.setState({selectedDate:"Select Date/Time", volume:"", selectedType: ""});
           alertMessage("Success");
         } else {
           alertMessage(response.data.message);
@@ -203,8 +203,9 @@ export default class Profile extends Component {
       .then((response) => {
         this.setState({loading:false});
         if(response.status === 200){
+          const businessTypes = response.data.map((el)=>{return {key: el.id, value:el.name}});
           this.setState({
-            businessTypes: response.data.map((el)=>{return {key: el.id, value:el.name}}),
+            businessTypes: businessTypes,
           });
         } else {
           alertMessage(response.data.message);
@@ -254,28 +255,29 @@ export default class Profile extends Component {
         this.setState({loading:false});
         if(response.status === 200){
           const data = response.data;
-
+            console.log(data);
           this.setState({
               business_name: data.business_name || "" ,
               contact_name:data.contact_name || "",
               address:data.address || "",
               phone:data.phone || "",
               email:data.email || "",
-              bussiness_type: data.business_type || ""
+              business_type: this.state.businessTypes.filter((el)=>el.key===data.business_type)[0],
           });
-        } else {
-          alertMessage(response.data.message);
         }
       })
-      .catch((error) => {        
-        alertMessage(error.message);
+      .catch((error) => {
         this.setState({loading:false});
-        console.log("error",  error);
+        if(error.response.status === 401){
+          alertMessage("Session expired. Please login");
+          this.props.navigation.navigate('Login');
+        }
+        console.log("error", error.response);
       });
     }
 
   render() {
-
+      console.log(this.state);
     const { constainEditText } = styles;
 
     return (
@@ -375,29 +377,17 @@ export default class Profile extends Component {
             onSubmitEditing={()=> {
           }} />
 
-
-          {/*<TextElement style={constainEditText}>*/}
-            {/*Business Type*/}
-          {/*</TextElement>*/}
           <Dropdown
             labelFontSize={14}
             label='Business type'
             dropdownOffset={{top: 32, left: 10}}
             selectedItemColor={GREEN}
-            value={this.state.bussiness_type}
-            onChangeText={(item) =>{
-              this.setState({bussiness_type: item.value || item})
+            value={this.state.business_type && this.state.business_type.value || ""}
+            onChangeText={(value, index) =>{
+              this.setState({business_type: this.state.businessTypes[index]})
             }}
             data={this.state.businessTypes}
           />
-            {/*<TextEntryElement */}
-            {/*placeholder="Business Type"*/}
-            {/*errorMessage={this.state.emailerror}*/}
-            {/*value={this.state.bussiness_type || null}*/}
-            {/*onChangeText={bussiness_type => this.handleChange(bussiness_type, "bussiness_type")}*/}
-            {/*onSubmitEditing={()=> {*/}
-          
-            {/*}} />*/}
 
             <ButtonElement
               style={{ marginTop: 30 }}
@@ -418,6 +408,7 @@ export default class Profile extends Component {
             label='Waste type'
             dropdownOffset={{top: 32, left: 10}}
             selectedItemColor={GREEN}
+            value={this.state.selectedType}
             onChangeText={(item) =>{
               this.setState({selectedType: item})
             }}

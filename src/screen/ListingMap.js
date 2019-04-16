@@ -1,11 +1,12 @@
 import React, {Component} from 'react';
-import {StyleSheet, View,Dimensions, Image, Modal, AsyncStorage} from 'react-native';
+import {StyleSheet, View,Dimensions, Image, Modal, AsyncStorage, TouchableOpacity} from 'react-native';
 import { TextEntryElement, TextElement, ButtonElement, Header, CustomStatusBarWithRoot, CardView, Progress } from '../component';
 import MapView,  { PROVIDER_GOOGLE } from 'react-native-maps';
 import { Dropdown } from 'react-native-material-dropdown';
 import { Divider } from '../component/Divider';
 import { GREEN, GET_LISTINGS, GET_WASTES, CLAIM_LISTING } from '../utils/constants';
 import { alertMessage } from '../utils/utility';
+import Icon from 'react-native-vector-icons/AntDesign';
 import axios from "axios";
 const { width, height } = Dimensions.get('window');
 const URLSearchParams = require("form-data");
@@ -180,8 +181,13 @@ export default class ListingMap extends Component {
           }
         })
         .catch((error) => {
-          alertMessage(error.message);
           this.setState({loading:false});
+          if(error.response.status === 401){
+            alertMessage("Session expired. Please login");
+            this.props.navigation.navigate('Login');
+          } else {
+            alertMessage(error.message);
+          }
           console.log("error",  error.message);
         });
 
@@ -283,7 +289,7 @@ export default class ListingMap extends Component {
       </View>
       
        <Modal
-          animationType="slide"
+          animationType="fade"
           transparent={true}
           visible={this.state.modalVisible}
           onRequestClose={() => {
@@ -299,9 +305,18 @@ export default class ListingMap extends Component {
             }}
           > 
           <CardView>
-          <TextElement style={{fontWeight:"900", fontSize:26, padding:10}}>
-              Order
-            </TextElement>
+            <View style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+            }}>
+              <TextElement style={{fontWeight:"900", fontSize:26, padding:10}}>
+                Order
+              </TextElement>
+              <TouchableOpacity onPress={()=>{this.setModalVisible();}} activeOpacity={1} style={{padding: 10}}>
+                <Icon name='closecircleo'  size={25} style = {{color: 'black'}} />
+              </TouchableOpacity>
+            </View>
+
             <Divider />
             <View style={{padding:10}}>
               <TextElement>

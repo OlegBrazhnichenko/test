@@ -35,6 +35,7 @@ export const GET_BUSINESS_TYPES = BASE_URL+"businesses";
 export const POST_LISTING = BASE_URL+"listings";
 export const GET_LISTINGS = BASE_URL+"listings";
 export const CLAIM_LISTING = BASE_URL+"listings/";
+export const LOGOUT = BASE_URL+'logout';
 // Error Message
 const constant = {
   SERVER_ERROR_MESSAGE: "The request failed due to an internal error.",

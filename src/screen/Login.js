@@ -39,10 +39,6 @@ export default class Login extends Component {
         this.props.navigation.goBack();
       }
       getLogin(){
-        // let params = new URLSearchParams();
-        // params.append('email', this.state.email);
-        // params.append('password', this.state.password);
-
         let params = {
           email: this.state.email,
           password: this.state.password,
