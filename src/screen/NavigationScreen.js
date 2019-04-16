@@ -59,9 +59,9 @@ export default class NavigationScreen extends Component {
         AsyncStorage.setItem("token", "");
         this.props.navigation.navigate('Login')
       }
-    }).catch((error) => {
-      alertMessage(error.message);
-      console.log("error",  error);
+    }).catch(() => {
+      AsyncStorage.setItem("token", "");
+      this.props.navigation.navigate('Login')
     });
   }
   render() {
