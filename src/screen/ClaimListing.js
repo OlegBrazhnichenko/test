@@ -39,6 +39,7 @@ export default class ClaimListing extends Component {
       }
       componentDidMount(){
         this.getAsyncData();
+        this.testAuth();
       }
       async getAsyncData(){
         this.getListing();
@@ -48,6 +49,13 @@ export default class ClaimListing extends Component {
         }, ()=> {
           this.getWastes();
         });
+      }
+      async testAuth(){
+        const token = await AsyncStorage.getItem("token");
+        if(!token) {
+          alertMessage("You are unauthorized, please sign in");
+          this.props.navigation.navigate("Login");
+        }
       }
       goBack(){
         this.props.navigation.goBack();

@@ -1,7 +1,7 @@
 
 
-import React, {Component} from 'react';
-import {StyleSheet, View, ScrollView, TouchableOpacity, AsyncStorage, Picker} from 'react-native';
+import React, {Component, Fragment} from 'react';
+import {StyleSheet, View, ScrollView, TouchableOpacity, Modal, AsyncStorage, Picker} from 'react-native';
 import {
   TextEntryElement,
   TextElement,
@@ -10,9 +10,13 @@ import {
   ButtonElement,
   TabElement,
   Header,
-  LableElement
+  LableElement,
+  CardView,
+  Divider,
 } from '../component';
 import DateTimePicker from 'react-native-modal-datetime-picker';
+import Icon from 'react-native-vector-icons/AntDesign';
+import CodeInput from 'react-native-code-input';
 import { Dropdown } from 'react-native-material-dropdown';
 import {
   GREEN,
@@ -58,9 +62,15 @@ export default class Profile extends Component {
           isDateTimePickerVisible:false,
           selectedDate:"Select Date/Time",
           businessTypes: [],
+          confirmationPhone: "",
+          modalVisible: false,
+          confirmationCodeRequest: false,
+          confirmationCode: "",
+          isPhoneConfirmed: false,
         };
       }
   componentDidMount(){
+    this.testAuth();
     this.getAsyncData();
     this.getWastes();
     this.getBusinessTypes();
@@ -77,6 +87,13 @@ export default class Profile extends Component {
       (error) => this.setState({ error: error.message }),
       { enableHighAccuracy: false, timeout: 200000, maximumAge: 1000 },
     );
+  }
+  async testAuth(){
+    const token = await AsyncStorage.getItem("token");
+    if(!token) {
+      alertMessage("You are unauthorized, please sign in");
+      this.props.navigation.navigate("Login");
+    }
   }
   async getAsyncData(){
     // const userID = await AsyncStorage.getItem("id");
@@ -122,7 +139,7 @@ export default class Profile extends Component {
         phone: this.state.phone,
         contact_name: this.state.contact_name,
         business_name: this.state.business_name,
-        business_type: this.state.business_type.key,
+        business_type: this.state.business_type && this.state.business_type.key || "",
         address: this.state.address,
       };
 
@@ -276,9 +293,59 @@ export default class Profile extends Component {
       });
     }
 
+  getPhone(){
+    const config = {headers: {
+      Authorization: "Bearer "+this.state.token,
+      'Access-Control-Allow-Origin': '*'
+    }};
+    this.setState({loading:true});
+
+    axios.get(PROFILE_URL, config)
+      .then((response) => {
+
+        this.setState({loading:false});
+        if(response.status === 200){
+          const data = response.data;
+          console.log(data);
+          this.setState({
+            confirmationPhone: data.phone || "",
+          });
+        }
+      })
+      .catch((error) => {
+        this.setState({loading:false});
+        if(error.response.status === 401){
+          alertMessage("Session expired. Please login");
+          this.props.navigation.navigate('Login');
+        }
+        console.log("error", error.response);
+      });
+  }
+  openConfirmModal(){
+    this.getPhone();
+    this.setState({modalVisible: true});
+  }
+  handleConfirmationCodeSend() {
+    this.setState({confirmationCodeRequest: true});
+  }
+  closeModal(){
+    // Close modal and reset phone confirmation flow
+    this.setState({
+      modalVisible: !this.state.modalVisible,
+      confirmationPhone: "",
+      confirmationCodeRequest: false,
+      confirmationCode: "",
+    });
+  }
+  confirmCode() {
+    console.log(this.state.confirmationCode);
+    this.closeModal();
+    this.setState({isPhoneConfirmed: true});
+    alertMessage("Code confirmation success")
+  }
   render() {
       console.log(this.state);
-    const { constainEditText } = styles;
+    const { constainEditText, confirmationCodeLabel } = styles;
 
     return (
 
@@ -353,7 +420,6 @@ export default class Profile extends Component {
           <TextElement style={constainEditText}>
             Phone
           </TextElement>
-
           <TextEntryElement 
             placeholder="Phone"
             errorMessage={ this.state.emailerror }
@@ -363,7 +429,15 @@ export default class Profile extends Component {
             onSubmitEditing={()=> {
         
           }} />
-
+          {/*{!this.state.isPhoneConfirmed && (*/}
+            {/*<TextElement>*/}
+              {/*Warn: you need to&nbsp;*/}
+              {/*<TextElement onPress={()=>this.openConfirmModal()} style={{textDecorationLine:"underline", color: GREEN}}>*/}
+                {/*confirm*/}
+              {/*</TextElement>*/}
+              {/*&nbsp;your phone*/}
+            {/*</TextElement>*/}
+          {/*)}*/}
 
           <TextElement style={constainEditText}>
             Email
@@ -444,6 +518,79 @@ export default class Profile extends Component {
               Publish
             </ButtonElement>
         </View>
+        <Modal
+          animationType="fade"
+          transparent={true}
+          visible={this.state.modalVisible}
+          onRequestClose={() => {
+            this.closeModal();
+          }}
+        >
+          <View style={{
+                  flex:1,
+                  justifyContent:"center",
+                  padding:10,
+                  backgroundColor: "rgba(52, 52, 52, 0.4)"
+          }}>
+            <CardView>
+              <View style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+              }}>
+                <TextElement style={{fontWeight:"900", fontSize:26, padding:10}}>
+                  Confirm phone
+                </TextElement>
+                <TouchableOpacity onPress={()=>{this.closeModal();}} activeOpacity={1} style={{padding: 10}}>
+                  <Icon name='closecircleo'  size={25} style = {{color: 'black'}} />
+                </TouchableOpacity>
+              </View>
+              <Divider />
+              {!this.state.confirmationCodeRequest && (
+                <Fragment>
+                  <View style={{padding:10}}>
+                    <TextElement>
+                      Phone: {this.state.confirmationPhone}
+                    </TextElement>
+                  </View>
+                  <ButtonElement style={{margin:10, marginTop: 20}} onPress={() =>{this.handleConfirmationCodeSend()}}>
+                    Send confirmation code
+                  </ButtonElement>
+                </Fragment>
+              ) || (
+                <View style={{padding:10}}>
+                  <TextElement style={confirmationCodeLabel}>
+                    We send you confirmation code on your phone, please enter it in the field below:
+                  </TextElement>
+                  {/*<TextEntryElement*/}
+                    {/*placeholder="Enter confirmation code"*/}
+                    {/*errorMessage={ this.state.emailerror }*/}
+                    {/*keyboardType={"numeric"}*/}
+                    {/*value={this.state.confirmationCode}*/}
+                    {/*onChangeText={value => this.handleChange(value, "confirmationCode")}*/}
+                    {/*onSubmitEditing={()=> {*/}
+
+                    {/*}} />*/}
+                  <CodeInput
+                    ref="codeInputRef2"
+                    activeColor='rgba(35,140,133, 1)'
+                    inactiveColor='rgba(35,140,133, 0.3)'
+                    autoFocus={false}
+                    codeLength={4}
+                    inputPosition='center'
+                    size={40}
+                    onFulfill={(code) => this.handleChange(code, "confirmationCode")}
+                    containerStyle={{ marginTop: 30, marginBottom: 60}}
+                    codeInputStyle={{ borderWidth: 1.5 }}
+                  />
+                  <ButtonElement style={{margin:10}} onPress={() =>{this.confirmCode()}}>
+                    Confirm
+                  </ButtonElement>
+                </View>
+              )}
+
+            </CardView>
+          </View>
+        </Modal>
         <Progress isShow={this.state.loading} />
       </CustomStatusBarWithRoot>
     );
@@ -471,4 +618,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     padding: 2,
   },
+  confirmationCodeLabel: {
+    marginTop: 8,
+    fontSize: 15,
+    padding: 2,
+    color: '#282828'
+  }
 });

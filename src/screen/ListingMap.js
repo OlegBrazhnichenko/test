@@ -75,27 +75,34 @@ export default class ListingMap extends Component {
       this.setState({ modalVisible: !this.state.modalVisible });
       
     }
-  componentDidMount(){
-    this.getAsyncData();
+    componentDidMount(){
+      this.testAuth();
+      this.getAsyncData();
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        // const regian = {
-        //   latitude: position.coords.latitude,
-        //   longitude: position.coords.longitude,
-        //   latitudeDelta: 0.0922,
-        //   longitudeDelta: 0.0421,
-        // }
-        this.setState({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude
-        });
-        // this.setState({regian});
-      },
-      (error) => this.setState({ error: error.message }),
-      { enableHighAccuracy: false, timeout: 200000, maximumAge: 1000 },
-    );
-
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          // const regian = {
+          //   latitude: position.coords.latitude,
+          //   longitude: position.coords.longitude,
+          //   latitudeDelta: 0.0922,
+          //   longitudeDelta: 0.0421,
+          // }
+          this.setState({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          });
+          // this.setState({regian});
+        },
+        (error) => this.setState({ error: error.message }),
+        { enableHighAccuracy: false, timeout: 200000, maximumAge: 1000 },
+      );
+    }
+    async testAuth(){
+      const token = await AsyncStorage.getItem("token");
+      if(!token) {
+        alertMessage("You are unauthorized, please sign in");
+        this.props.navigation.navigate("Login");
+      }
     }
     async getAsyncData(){
       this.getListing();

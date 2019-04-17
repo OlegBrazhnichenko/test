@@ -49,6 +49,7 @@ export default class Login extends Component {
           headers: {
             'Content-Type': 'application/json',
              'Access-Control-Allow-Origin': '*',
+            'Cache-Control': 'no-cache',
               'Access-Control-Allow-Headers': 'Content-Type, X-Auth-Token, Origin, Authorization'
           }
         };
@@ -77,11 +78,9 @@ export default class Login extends Component {
     return (
 
       <CustomStatusBarWithRoot>
-
       <Header onBackPress={()=> this.goBack()}>
         Sign in
       </Header>
-
       <View style={styles.container}>
 
         <Image
