@@ -40,10 +40,10 @@ export default class Login extends Component {
       }
       getLogin(){
         let params = {
-          email: this.state.email,
-          password: this.state.password,
-          //   email: "A@a.a",
-          //   password: 'q',
+          // email: this.state.email,
+          // password: this.state.password,
+            email: "A@a.a",
+            password: 'q',
         };
         const config = {
           headers: {

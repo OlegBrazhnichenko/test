@@ -24,6 +24,8 @@ import {
   GET_WASTES,
   GET_BUSINESS_TYPES,
   POST_LISTING,
+  SEND_SMS,
+  CONFIRM_CODE,
 } from '../utils/constants';
 import axios from "axios";
 import { alertMessage } from '../utils/utility';
@@ -279,6 +281,7 @@ export default class Profile extends Component {
               address:data.address || "",
               phone:data.phone || "",
               email:data.email || "",
+              isPhoneConfirmed: data.is_confirmed_phone,
               business_type: this.state.businessTypes.filter((el)=>el.key===data.business_type)[0],
           });
         }
@@ -321,27 +324,88 @@ export default class Profile extends Component {
         console.log("error", error.response);
       });
   }
+
+  sendSMS(){
+
+  }
+
+  confirmCodeRequest(){
+
+  }
+
   openConfirmModal(){
     this.getPhone();
     this.setState({modalVisible: true});
   }
   handleConfirmationCodeSend() {
-    this.setState({confirmationCodeRequest: true});
+    const config = {headers: {
+      Authorization: "Bearer "+this.state.token,
+      'Access-Control-Allow-Origin': '*'
+    }};
+    this.setState({loading:true});
+
+    axios.post(SEND_SMS, {}, config).then((response) => {
+      this.setState({loading:false});
+      if(response.status === 200){
+        const data = response.data;
+        console.log(data);
+        this.setState({confirmationCodeRequest: true});
+      }
+    })
+    .catch((error) => {
+      this.setState({loading:false});
+      if(error.response.status === 401){
+        alertMessage("Session expired. Please login");
+        this.props.navigation.navigate('Login');
+      } else if(error.response.status === 400){
+        alertMessage("Please, make sure that your phone number is correct and have country code without `+` sign");
+      }
+      console.log("error", error.response);
+    });
+
   }
   closeModal(){
     // Close modal and reset phone confirmation flow
     this.setState({
-      modalVisible: !this.state.modalVisible,
+      modalVisible: false,
       confirmationPhone: "",
       confirmationCodeRequest: false,
       confirmationCode: "",
     });
   }
+
   confirmCode() {
-    console.log(this.state.confirmationCode);
-    this.closeModal();
-    this.setState({isPhoneConfirmed: true});
-    alertMessage("Code confirmation success")
+    const config = {headers: {
+      Authorization: "Bearer "+this.state.token,
+      'Access-Control-Allow-Origin': '*'
+    }};
+    this.setState({loading:true});
+
+    const params = {
+      phone:this.state.confirmationPhone,
+      code:this.state.confirmationCode,
+    };
+
+    axios.post(CONFIRM_CODE, params, config).then((response) => {
+      this.closeModal();
+      this.setState({loading:false});
+      if(response.status === 200){
+
+        const data = response.data;
+        console.log(data);
+        this.setState({isPhoneConfirmed: true});
+        alertMessage("Code confirmation success")
+      }
+    })
+    .catch((error) => {
+      this.closeModal();
+      this.setState({loading:false});
+      if(error.response.status === 401){
+        alertMessage("Session expired. Please login");
+        this.props.navigation.navigate('Login');
+      }
+      console.log("error", error.response);
+    });
   }
   render() {
       console.log(this.state);
@@ -429,15 +493,15 @@ export default class Profile extends Component {
             onSubmitEditing={()=> {
         
           }} />
-          {/*{!this.state.isPhoneConfirmed && (*/}
-            {/*<TextElement>*/}
-              {/*Warn: you need to&nbsp;*/}
-              {/*<TextElement onPress={()=>this.openConfirmModal()} style={{textDecorationLine:"underline", color: GREEN}}>*/}
-                {/*confirm*/}
-              {/*</TextElement>*/}
-              {/*&nbsp;your phone*/}
-            {/*</TextElement>*/}
-          {/*)}*/}
+          {!this.state.isPhoneConfirmed && (
+            <TextElement>
+              Warn: you need to&nbsp;
+              <TextElement onPress={()=>this.openConfirmModal()} style={{textDecorationLine:"underline", color: GREEN}}>
+                confirm
+              </TextElement>
+              &nbsp;your phone
+            </TextElement>
+          )}
 
           <TextElement style={constainEditText}>
             Email

@@ -23,19 +23,20 @@ export const MAIN_COLOR = "#75e2d1";
 
 //URL
 // export const BASE_URL = "http://3.84.119.206/wayts/index.php/v1/";
-export const BASE_URL = "http://18.191.183.161/api/";
+export const BASE_URL = "http://18.223.143.174/api/";
 export const LOGIN_URL = BASE_URL+"login";
 export const PROFILE_URL = BASE_URL+"profile";
-export const UPDATE_PROFILE_URL = BASE_URL+"update_profile";
 export const SIGNUP_URL = BASE_URL+"signup";
-export const PUBLISH_LISTING_URL = BASE_URL+"add_listing";
-export const GET_LISTING_URL = BASE_URL+"get_listing";
 export const GET_WASTES = BASE_URL+"wastes";
 export const GET_BUSINESS_TYPES = BASE_URL+"businesses";
 export const POST_LISTING = BASE_URL+"listings";
 export const GET_LISTINGS = BASE_URL+"listings";
 export const CLAIM_LISTING = BASE_URL+"listings/";
 export const LOGOUT = BASE_URL+'logout';
+export const SEND_SMS = BASE_URL+'user/phone/sendsms';
+export const CONFIRM_CODE  = BASE_URL+'user/phone/confirm';
+
+
 // Error Message
 const constant = {
   SERVER_ERROR_MESSAGE: "The request failed due to an internal error.",
