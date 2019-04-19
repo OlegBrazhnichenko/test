@@ -387,22 +387,28 @@ export default class Profile extends Component {
     };
 
     axios.post(CONFIRM_CODE, params, config).then((response) => {
-      this.closeModal();
-      this.setState({loading:false});
-      if(response.status === 200){
 
+      this.setState({loading:false});
+      console.log("CODE CONFIRMED",this.state);
+      if(response.status === 200){
         const data = response.data;
         console.log(data);
         this.setState({isPhoneConfirmed: true});
-        alertMessage("Code confirmation success")
+        alertMessage("Code confirmation success", this.closeModal());
+
       }
     })
     .catch((error) => {
-      this.closeModal();
+      console.log("CODE DECLINED", this.state);
+
       this.setState({loading:false});
       if(error.response.status === 401){
-        alertMessage("Session expired. Please login");
-        this.props.navigation.navigate('Login');
+        this.setState({isPhoneConfirmed: true}, ()=>{
+          alertMessage("Session expired. Please login",this.closeModal());
+          this.props.navigation.navigate('Login');
+        });
+      } else {
+        alertMessage("Please, check your code");
       }
       console.log("error", error.response);
     });
